@@ -1,4 +1,4 @@
-package main
+package block
 
 import (
 	"crypto/sha256"
@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-const MINING_DIFFICULTY = 3
+const  (
+	MINING_DIFFICULTY = 3
+	MINING_SENDER = "THE BLOCKCHAIN"
+	MINING_REWARD = 1.0
+)
 
 type Block struct {
 	timestamp    int64
@@ -21,6 +25,7 @@ type Block struct {
 type Blockchain struct {
 	transactionPool []*Transaction
 	chain           []*Block
+	blockchainAddress string
 }
 
 type Transaction struct {
@@ -29,7 +34,7 @@ type Transaction struct {
 	value                      float32
 }
 
-// transactiuon functions
+// transaction functions
 func NewTransaction(sender string, recipient string, value float32) *Transaction {
 	return &Transaction{sender, recipient, value}
 }
@@ -99,16 +104,17 @@ func (bc *Blockchain) CreateBlock(nonce int, previousHash [32]byte) *Block {
 	return b
 }
 
-func NewBlockchain() *Blockchain {
+func NewBlockchain(blockchainAddress string) *Blockchain {
 	b := &Block{}
 	bc := new(Blockchain)
+	bc.blockchainAddress = blockchainAddress
 	bc.CreateBlock(0, b.Hash())
 	return bc
 }
 
 func (bc *Blockchain) Print() {
 	for i, block := range bc.chain {
-		fmt.Printf("%sChain %d %s\n", strings.Repeat("=", 25), i, strings.Repeat("=", 25))
+		fmt.Printf("%sBlock %d %s\n", strings.Repeat("=", 25), i, strings.Repeat("=", 25))
 		block.Print()
 	}
 	fmt.Printf("%s\n", strings.Repeat("*", 25))
@@ -152,24 +158,30 @@ func (bc *Blockchain) ProofOfWork() int {
 	return nonce
 }
 
-// helper functions
-func init() {
-	log.SetPrefix("Blockchain: ")
+func (bc *Blockchain) Mining() bool {
+	bc.AddTransaction(MINING_SENDER, bc.blockchainAddress, MINING_REWARD)
+	nonce := bc.ProofOfWork()
+	previousHash := bc.LastBlock().Hash()
+	bc.CreateBlock(nonce, previousHash)
+	log.Println("action=mining, status=success")
+
+	return true
 }
 
-func main() {
-	blockChain := NewBlockchain()
+func (bc *Blockchain) CalculateTotalAmount(blockchainAddress string) float32 {
+	var totalAmount float32 = 0.0
+	for _, b := range bc.chain {
+		for _, t := range b.transactions {
+			value := t.value
+			if blockchainAddress == t.recipientBlockchainAddress {
+				totalAmount += value
+			}
 
-	blockChain.AddTransaction("one", "B", 1)
-	previousHash := blockChain.LastBlock().Hash()
-	nonce := blockChain.ProofOfWork()
-	blockChain.CreateBlock(nonce, previousHash)
-	
-	blockChain.AddTransaction("ss", "zz", 1)
-	blockChain.AddTransaction("zz", "ss", 1)
-	blockChain.AddTransaction("aa", "bb", 1)
-	previousHash = blockChain.LastBlock().Hash()
-	nonce = blockChain.ProofOfWork()
-	blockChain.CreateBlock(nonce, previousHash)
-	blockChain.Print()
+			if blockchainAddress == t.senderBlockchainAddress {
+				totalAmount -= value
+			}
+		}
+	}
+
+	return totalAmount
 }
