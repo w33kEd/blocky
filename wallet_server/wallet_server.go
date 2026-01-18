@@ -6,6 +6,8 @@ import (
 	"path"
 	"strconv"
 	"text/template"
+
+	"github.com/w33ked/go-blocky/wallet"
 )
 
 const tempDir = "templates"
@@ -37,7 +39,20 @@ func (ws *WalletServer) Index(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (ws *WalletServer) Wallet(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		myWallet := wallet.NewWallet()
+		m, _ := myWallet.MarshalJSON()
+		w.Write(m[:])
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("ERR: Invalid HTTP MEthod")
+	}
+}
+
 func (ws *WalletServer) Run() {
 	http.HandleFunc("/", ws.Index)
+	http.HandleFunc("/wallet", ws.Wallet)
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(ws.Port())), nil))
 }
