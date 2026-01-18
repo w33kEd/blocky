@@ -20,6 +20,34 @@
                         console.error(error);
                     }
                 })
+
+                $("#send_money_button").click(function () {
+                    if (!confirm("Sure To Send?")) {
+                        return;
+                    }
+                    let transaction_data = {
+                        'sender_private_key':$('#private_key').val(),
+                        'sender_public_key':$('#public_key').val(),
+                        'sender_blockchain_address':$('#blockchain_address').val(),
+                        'recipient_blockchain_address':$('#recipient_blockchain_address').val(),
+                        'value':$('#send_amount').val(),
+                    }
+
+                    $.ajax({
+                        url: '/transaction',
+                        data: JSON.stringify(transaction_data),
+                        contentType: "application/json",
+                        type: 'POST',
+                        success: function (response, status) {
+                            console.log("Send success")
+                            console.log(response)
+                        },
+                        error: function (response) {
+                            console.log("In Error")
+                            console.error(response)
+                        }
+                    })
+                })
             })
         </script>
     </head>
