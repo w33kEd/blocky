@@ -12,10 +12,10 @@ import (
 	"github.com/w33ked/go-blocky/utils"
 )
 
-const  (
-	MINING_DIFFICULTY = 3
-	MINING_SENDER = "THE BLOCKCHAIN"
-	MINING_REWARD = 1.0
+const (
+	MINING_DIFFICULTY = 1
+	MINING_SENDER     = "THE BLOCKCHAIN"
+	MINING_REWARD     = 1.0
 )
 
 type Block struct {
@@ -26,15 +26,35 @@ type Block struct {
 }
 
 type Blockchain struct {
-	transactionPool []*Transaction
-	chain           []*Block
+	transactionPool   []*Transaction
+	chain             []*Block
 	blockchainAddress string
+	port              uint16
 }
 
 type Transaction struct {
 	senderBlockchainAddress    string
 	recipientBlockchainAddress string
 	value                      float32
+}
+
+type TransactionRequest struct {
+	SenderBlockchainAddress    *string  `json:"sender_blockchain_address"`
+	RecipientBlockchainAddress *string  `json:"recipient_blockchain_address"`
+	SenderPublicKey            *string  `json:"sender_public_key"`
+	Value                      *float32 `json:"value"`
+	Signature                  *string  `json:"signature"`
+}
+
+func (tr *TransactionRequest) Validate() bool {
+	if tr.SenderBlockchainAddress == nil ||
+		tr.RecipientBlockchainAddress == nil ||
+		tr.SenderPublicKey == nil ||
+		tr.Value == nil ||
+		tr.Signature == nil {
+		return false
+	}
+	return true
 }
 
 // transaction functions
@@ -89,12 +109,12 @@ func (b *Block) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Timestamp    int64          `json:"timestamp"`
 		Nonce        int            `json:"nonce"`
-		PreviousHash [32]byte       `json:"previousHash"`
+		PreviousHash string         `json:"previousHash"`
 		Transactions []*Transaction `json:"transactions"`
 	}{
 		Timestamp:    b.timestamp,
 		Nonce:        b.nonce,
-		PreviousHash: b.previousHash,
+		PreviousHash: fmt.Sprintf("%x", b.previousHash),
 		Transactions: b.transactions,
 	})
 }
@@ -107,12 +127,25 @@ func (bc *Blockchain) CreateBlock(nonce int, previousHash [32]byte) *Block {
 	return b
 }
 
-func NewBlockchain(blockchainAddress string) *Blockchain {
+func (bc *Blockchain) TransactionPool() []*Transaction {
+	return bc.transactionPool
+}
+
+func NewBlockchain(blockchainAddress string, port uint16) *Blockchain {
 	b := &Block{}
 	bc := new(Blockchain)
 	bc.blockchainAddress = blockchainAddress
 	bc.CreateBlock(0, b.Hash())
+	bc.port = port
 	return bc
+}
+
+func (bc *Blockchain) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Blocks []*Block `json:"chains"`
+	}{
+		Blocks: bc.chain,
+	})
 }
 
 func (bc *Blockchain) Print() {
@@ -127,6 +160,15 @@ func (bc *Blockchain) LastBlock() *Block {
 	return bc.chain[len(bc.chain)-1]
 }
 
+func (bc *Blockchain) CreateTransaction(sender string, recipient string, value float32, senderPublicKey *ecdsa.PublicKey, s *utils.Signature) bool {
+	isTransacted := bc.AddTransaction(sender, recipient, value, senderPublicKey, s)
+
+	// TODO 
+	// Sync
+
+	return isTransacted
+}
+
 func (bc *Blockchain) AddTransaction(sender string, recipient string, value float32, senderPublicKey *ecdsa.PublicKey, s *utils.Signature) bool {
 	t := NewTransaction(sender, recipient, value)
 
@@ -135,7 +177,11 @@ func (bc *Blockchain) AddTransaction(sender string, recipient string, value floa
 		return true
 	}
 
-	if (bc.VerifyTransactionSignature(senderPublicKey, s, t)) {
+	if bc.VerifyTransactionSignature(senderPublicKey, s, t) {
+		// if bc.CalculateTotalAmount(sender) < value {
+		// 	log.Println("ERR! Not enough balance in wallet")
+		// 	return false
+		// }
 		bc.transactionPool = append(bc.transactionPool, t)
 		return true
 	} else {
@@ -147,10 +193,10 @@ func (bc *Blockchain) AddTransaction(sender string, recipient string, value floa
 }
 
 func (bc *Blockchain) VerifyTransactionSignature(
-	senderPublicKey *ecdsa.PublicKey, s *utils.Signature, t *Transaction ) bool {
-		m, _ := json.Marshal(t)
-		h := sha256.Sum256([]byte(m))
-		return ecdsa.Verify(senderPublicKey, h[:], s.R, s.S)
+	senderPublicKey *ecdsa.PublicKey, s *utils.Signature, t *Transaction) bool {
+	m, _ := json.Marshal(t)
+	h := sha256.Sum256([]byte(m))
+	return ecdsa.Verify(senderPublicKey, h[:], s.R, s.S)
 }
 
 func (bc *Blockchain) CopyTransactionPool() []*Transaction {

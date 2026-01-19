@@ -9,7 +9,7 @@
                 $.ajax({
                     url: '/wallet',
                     dataType: 'json',
-                    type: 'POST',
+                    type: 'GET',
                     success: function(response) {
                         $('#public_key').val(response['public_key']);
                         $('#private_key').val(response['private_key']);
@@ -43,12 +43,17 @@
                         contentType: "application/json",
                         type: 'POST',
                         success: function (response, status) {
-                            console.log("Send success")
-                            console.log(response)
+                            console.info(response)
+                            if (response.message === 'fail') {
+                                alert("failed");
+                                return;
+                            }
+                            alert("Send success");
+                            console.log("hey")
                         },
                         error: function (response) {
-                            console.log("In Error")
-                            console.error(response)
+                            console.error("response");
+                            alert('Send Failed');
                         }
                     })
                 })
