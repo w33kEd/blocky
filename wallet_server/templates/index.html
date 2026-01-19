@@ -22,7 +22,11 @@
                 })
 
                 $("#send_money_button").click(function () {
-                    if (!confirm("Sure To Send?")) {
+                    const recipient = $('#recipient_blockchain_address').val().trim();
+                    const amountStr = $('#send_amount').val().trim();
+
+                    if (!confirm(`Confirm Transaction \nRecipient: ${recipient} \nAmount: ${amountStr}?`)) {
+                        console.log("User cancelled the transaction")
                         return;
                     }
                     let transaction_data = {
