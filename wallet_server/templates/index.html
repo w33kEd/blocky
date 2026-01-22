@@ -47,9 +47,9 @@
                             if (response.message === 'fail') {
                                 alert("failed");
                                 return;
+                            } else {
+                                alert("Send success");
                             }
-                            alert("Send success");
-                            console.log("hey")
                         },
                         error: function (response) {
                             console.error("response");
@@ -75,13 +75,13 @@
                     })
                 }
 
-                // /*
+                /*
                 $('#reload_wallet').click(function(){
                     reload_amount();
                 });
-                // */
+                */
 
-                // setInterval(reload_amount, 300)
+                setInterval(reload_amount, 300)
             })
         </script>
     </head>
@@ -89,7 +89,9 @@
         <div>
             <h1>Wallet</h1>
             <div id="wallet_amount">0</div>
+            <!--
             <button id="reload_wallet">Reload Wallet</button>
+            -->
 
             <p>Public Key</p>
             <textarea id="public_key" rows="2" cols="100"></textarea>
